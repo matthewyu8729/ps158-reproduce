@@ -1,0 +1,270 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>The Feed — a reinforcement learning lab</title>
+<style>
+:root{font-family:system-ui,sans-serif;color:#18332f;background:#f3f2eb;line-height:1.5;--green:#176455;--orange:#b74b2e}
+*{box-sizing:border-box}body{margin:0}main{max-width:1140px;margin:auto;padding:36px 24px 60px}header{border-bottom:1px solid #ccd3cb;padding-bottom:24px;margin-bottom:24px}.eyebrow{text-transform:uppercase;letter-spacing:.16em;font-size:12px;font-weight:750;color:var(--green)}h1{font-size:clamp(36px,6vw,60px);letter-spacing:-.055em;line-height:1.05;margin:12px 0}h2{font-size:21px;margin:0 0 8px}p{margin:8px 0;color:#52635d}.intro{max-width:750px;font-size:17px}.layout{display:grid;grid-template-columns:1.2fr 1fr;gap:20px}.panel{background:#fffefa;border:1px solid #d6dcd1;border-radius:16px;padding:24px}.wide{grid-column:1/-1}.tag{font-size:12px;font-weight:750;color:var(--green);margin-bottom:8px}.stats{display:flex;gap:24px;margin:22px 0}.stat strong{display:block;font-size:28px;line-height:1.2;font-variant-numeric:tabular-nums}.stat span{font-size:12px;color:#52635d}button,input,select{font:inherit}button{cursor:pointer;border:1px solid #bdcbc2;border-radius:8px;padding:10px 14px;color:#18332f;background:#fffefa}button:hover:not(:disabled){background:#e9f1eb;border-color:var(--green)}button:focus-visible,input:focus-visible,select:focus-visible,summary:focus-visible{outline:3px solid #d3a333;outline-offset:3px}button:disabled{opacity:.45;cursor:default}.primary{background:var(--green);border-color:var(--green);color:white}.primary:hover:not(:disabled){background:#0e4c40;color:white}.posts{display:grid;grid-template-columns:1fr 1fr;gap:10px}.post{text-align:left;min-height:94px}.post b{display:block;font-size:17px}.post small{display:block;color:#61716a;font-size:12px}.key{float:right;color:#61716a}.post[data-action="2"]{border-left:4px solid var(--orange)}.post[data-action="3"]{border-left:4px solid var(--green)}.actions{display:flex;flex-wrap:wrap;gap:8px;margin:16px 0}.notice{min-height:54px;background:#f0f3ec;padding:12px;border-radius:8px;font-size:14px}.check{display:block;font-size:13px;margin:12px 0}.reward-mode{display:block;font-size:14px;margin-top:16px}.reward-mode select{display:block;width:100%;padding:9px;margin-top:6px;border:1px solid #bdcbc2;border-radius:6px;background:#fffefa;color:#18332f}.fields{display:grid;grid-template-columns:1fr 90px;gap:12px;align-items:center;margin:18px 0}.fields label{font-size:14px}.fields input{width:90px;padding:7px;border:1px solid #bdcbc2;border-radius:6px}.fine{font-size:12px;color:#61716a}.legend{display:flex;flex-wrap:wrap;gap:18px;font-size:13px;margin:12px 0}.dot{display:inline-block;width:10px;height:10px;border-radius:50%;margin-right:6px;background:var(--green)}.dot.orange{background:var(--orange)}svg{width:100%;height:auto;display:block}details{margin-top:16px;font-size:13px}summary{cursor:pointer;font-weight:650}table{border-collapse:collapse;width:100%;font-size:12px;text-align:right;margin-top:12px}th,td{padding:6px;border-bottom:1px solid #e0e4db}th:first-child,td:first-child{text-align:left}.table-wrap{overflow:auto;max-height:330px}.history{max-height:170px;overflow:auto;padding-left:24px;font-size:13px}.history li{padding:4px}code{font-size:.95em}.seed{display:flex;align-items:center;gap:8px;font-size:13px;margin-top:12px}.seed input{width:115px;padding:6px;border:1px solid #bdcbc2;border-radius:6px}@media(max-width:760px){main{padding:24px 14px}.layout{grid-template-columns:1fr}.panel{padding:18px}.stats{gap:20px}.wide{grid-column:auto}}
+</style>
+</head>
+<body>
+<main>
+<header><div class="eyebrow">Political science · reinforcement learning lab</div><h1>The Feed<span style="color:#b74b2e">.</span></h1><p class="intro">Run a feed for 20 rounds. Clicks earn points. But attention has a cost: outrage erodes trust. Can you teach an agent to keep its audience’s trust?</p></header>
+<div class="layout">
+<section class="panel" aria-labelledby="play-title">
+<div class="tag">01 / PLAY THE GAME</div><h2 id="play-title">You choose the next post.</h2><p>Click a post or press its arrow key to show it immediately.</p>
+<div class="stats"><div class="stat"><strong id="round">0 / 20</strong><span>Rounds played</span></div><div class="stat"><strong id="score">0.00</strong><span>Total reward</span></div><div class="stat"><strong id="clicks">0</strong><span>Clicks</span></div></div>
+<div class="posts">
+<button class="post" data-action="0"><span class="key">←</span><b>News</b><small>45% click · trust unchanged</small></button>
+<button class="post" data-action="1"><span class="key">↑</span><b>Sports</b><small>60% click · trust unchanged</small></button>
+<button class="post" data-action="2"><span class="key">→</span><b>Outrage</b><small>85% click · trust falls one level</small></button>
+<button class="post" data-action="3"><span class="key">↓</span><b>Local</b><small>35% click · trust rises one level</small></button>
+</div>
+<div class="actions"><button id="new-game">New human game</button></div>
+<div class="notice" id="message" role="status" aria-live="polite">Your audience starts with high trust. Choose a post.</div>
+<label class="check"><input type="checkbox" id="reveal"> Reveal hidden trust while playing</label><p class="fine" id="trust">Trust: hidden until the game ends.</p>
+<details><summary>Round history</summary><ol class="history" id="history"></ol></details>
+</section>
+<section class="panel" aria-labelledby="reward-title">
+<div class="tag">02 / SET THE INCENTIVES</div><h2 id="reward-title">What counts as success?</h2><p>The real goal is to finish with <b>high trust</b>. The reward rule is yours to change.</p>
+<label class="reward-mode" for="reward-mode">Reward option
+<select id="reward-mode">
+<option value="original" selected>Original — click points only by default</option>
+<option value="viral">Viral reach — +2 extra per Outrage click</option>
+</select></label>
+<p class="fine" id="reward-explanation">Original rule: click points plus any trust incentives you set below.</p>
+<div class="fields">
+<label for="click-value">Points for a click</label><input id="click-value" data-weight="click" type="number" min="-100" max="100" step="0.5" value="1">
+<label for="loss-value">Penalty per trust level lost</label><input id="loss-value" data-weight="loss" type="number" min="0" max="100" step="0.5" value="0">
+<label for="gain-value">Bonus per trust level recovered</label><input id="gain-value" data-weight="gain" type="number" min="0" max="100" step="0.5" value="0">
+<label for="goal-value">Bonus for finishing with high trust</label><input id="goal-value" data-weight="goal" type="number" min="0" max="100" step="0.5" value="0">
+</div>
+<p class="notice" id="formula"></p><p class="fine">Switching options or editing numbers resets the agent, learning curve, and current game. Trust stops at high and low; hitting a boundary gives no trust-change reward.</p>
+<details open><summary>A deliberately small world: 15 states</summary><p>State = last post (none, news, sports, outrage, local) × trust (low, medium, high). Trust is a hidden three-level score: 0, 1, or 2. Outrage lowers it by 1; local raises it by 1, regardless of clicks.</p><p>The agent can observe trust; the human can reveal it. Round number is excluded from the state, so this small table cannot learn a special final-round strategy. The 20-round cutoff is tracked separately.</p></details>
+</section>
+<section class="panel wide" aria-labelledby="agent-title">
+<div class="tag">03 / TRAIN AN AGENT</div><h2 id="agent-title">Learn from clicks. See what gets lost.</h2><p>Tabular Q-learning · exploration ε = 0.2 · learning rate α = 0.2 · discount γ = 0.95 · initial Q = 0 · random tie-breaking</p>
+<label class="seed">Random seed <input id="seed" type="number" min="0" max="4294967295" step="1" value="158"> <span class="fine">Apply with Reset agent.</span></label>
+<div class="actions"><button class="primary" id="train100">Train 100 games</button><button class="primary" id="train1000">Train 1,000 games</button><button id="reset">Reset agent</button><button id="watch">Watch it play</button></div>
+<p id="training-status" role="status" aria-live="polite">0 training games. Train the agent, then watch its greedy policy.</p>
+<div class="legend"><span><i class="dot"></i>Average training reward · left axis</span><span><i class="dot orange"></i>Games ending with high trust · right axis</span></div>
+<svg id="chart" viewBox="0 0 960 290" role="img" aria-label="Learning curve. Train at least 50 games to plot the first batch."></svg>
+<p class="fine">Each point summarizes 50 consecutive training games, including exploration. Goal success is measured independently of reward. Watch uses ε = 0, does not update Q-values, and does not enter this chart.</p>
+<details><summary>Inspect the learned Q-table (15 states × 4 actions = 60 values)</summary><p class="fine">Higher values predict more discounted reward. Equal maxima are chosen randomly. “None” occurs only at the start with high trust; two other “none” rows are unused.</p><div class="table-wrap"><table><thead><tr><th>State: last / trust</th><th>News</th><th>Sports</th><th>Outrage</th><th>Local</th></tr></thead><tbody id="q-table"></tbody></table></div></details>
+<details><summary>Learning curve data</summary><div class="table-wrap"><table><thead><tr><th>Games</th><th>Average reward</th><th>High-trust finish</th></tr></thead><tbody id="curve-data"></tbody></table></div></details>
+<p class="fine">All randomness is seeded. Training, human play, and watching use separate streams, so playing or watching does not change training results. Reset with the same seed and reward settings to reproduce a run. Nothing is saved after reloading.</p>
+</section>
+</div>
+</main>
+<script>
+'use strict';
+// One reward rule, shared by human play, training, and watching.
+function reward(clicked, beforeTrust, afterTrust, terminal, weights, action) {
+  const clickPoints = clicked ? weights.click : 0; // Reward observed clicks.
+  const trustPenalty = Math.max(0, beforeTrust - afterTrust) * weights.loss; // Charge actual trust loss.
+  const recoveryBonus = Math.max(0, afterTrust - beforeTrust) * weights.gain; // Reward actual recovery.
+  const goalBonus = terminal && afterTrust === 2 ? weights.goal : 0; // Reward the real goal once, at the end.
+  const viralBonus = clicked && action === 2 ? weights.viral : 0; // Optional extra reward for an Outrage click.
+  return clickPoints - trustPenalty + recoveryBonus + goalBonus + viralBonus; // Total points for this move.
+}
+
+const POSTS = [
+  {name: 'News', chance: 0.45, trust: 0},
+  {name: 'Sports', chance: 0.60, trust: 0},
+  {name: 'Outrage', chance: 0.85, trust: -1},
+  {name: 'Local', chance: 0.35, trust: 1}
+];
+const LEVELS = ['low', 'medium', 'high'];
+const ROUNDS = 20, EPSILON = 0.2, ALPHA = 0.2, GAMMA = 0.95;
+const $ = id => document.getElementById(id);
+let weights = {click: 1, loss: 0, gain: 0, goal: 0, viral: 0};
+let q, games, curve, batchReward, batchSuccess, trainRandom, humanRandom, watchRandom;
+let game, mode = 'human', timer = null, busy = false;
+
+// Mulberry32: a reproducible, unsigned 32-bit random stream.
+function seededRandom(seed) {
+  let value = seed >>> 0;
+  return function () {
+    value = (value + 0x6D2B79F5) >>> 0;
+    let t = Math.imul(value ^ (value >>> 15), 1 | value);
+    t ^= t + Math.imul(t ^ (t >>> 7), 61 | t);
+    return ((t ^ (t >>> 14)) >>> 0) / 4294967296;
+  };
+}
+function freshGame() { return {last: 4, trust: 2, round: 0, score: 0, clicks: 0}; }
+function state(g) { return g.last * 3 + g.trust; }
+function chooseAction(s, epsilon, random) {
+  if (random() < epsilon) return Math.floor(random() * 4);
+  const best = Math.max(...q[s]);
+  const ties = [0, 1, 2, 3].filter(a => q[s][a] === best);
+  return ties[Math.floor(random() * ties.length)];
+}
+function step(g, action, random) {
+  const before = g.trust;
+  const clicked = random() < POSTS[action].chance;
+  g.trust = Math.max(0, Math.min(2, before + POSTS[action].trust));
+  g.last = action;
+  g.round++;
+  const terminal = g.round === ROUNDS;
+  const points = reward(clicked, before, g.trust, terminal, weights, action);
+  g.score += points;
+  g.clicks += Number(clicked);
+  return {clicked, points, terminal};
+}
+function trainGame() {
+  const g = freshGame();
+  while (g.round < ROUNDS) {
+    const s = state(g);
+    const action = chooseAction(s, EPSILON, trainRandom);
+    const result = step(g, action, trainRandom);
+    // Terminal moves have no future value to bootstrap.
+    const future = result.terminal ? 0 : GAMMA * Math.max(...q[state(g)]);
+    q[s][action] += ALPHA * (result.points + future - q[s][action]);
+  }
+  games++;
+  batchReward += g.score;
+  batchSuccess += Number(g.trust === 2);
+  if (games % 50 === 0) {
+    curve.push({games, average: batchReward / 50, success: batchSuccess / 50});
+    batchReward = 0;
+    batchSuccess = 0;
+  }
+}
+function setBusy(value) {
+  busy = value;
+  for (const id of ['train100', 'train1000', 'watch', 'reset', 'seed', 'reward-mode']) $(id).disabled = value;
+  document.querySelectorAll('[data-weight]').forEach(input => input.disabled = value);
+  $('new-game').disabled = value;
+  document.querySelectorAll('[data-action]').forEach(button => button.disabled = value || game.round === ROUNDS);
+}
+async function train(count) {
+  if (busy) return;
+  setBusy(true);
+  const target = games + count;
+  // Yield between chunks so the controls and progress can repaint.
+  while (games < target) {
+    const end = Math.min(games + 50, target);
+    while (games < end) trainGame();
+    $('training-status').textContent = `Training… ${games.toLocaleString()} games completed.`;
+    await new Promise(resolve => setTimeout(resolve, 0));
+  }
+  updateAgent();
+  setBusy(false);
+}
+function startHuman() {
+  clearInterval(timer);
+  timer = null;
+  mode = 'human';
+  game = freshGame();
+  $('history').replaceChildren();
+  $('message').textContent = 'Your audience starts with high trust. Choose a post.';
+  renderGame();
+}
+function play(action) {
+  if (game.round >= ROUNDS || (busy && mode !== 'watch')) return;
+  const result = step(game, action, mode === 'watch' ? watchRandom : humanRandom);
+  const description = `${POSTS[action].name}: ${result.clicked ? 'click' : 'no click'} · ${result.points.toFixed(2)} points`;
+  const item = document.createElement('li');
+  item.textContent = `${game.round}. ${description}`;
+  $('history').prepend(item);
+  if (result.terminal) {
+    $('message').textContent = `${mode === 'watch' ? 'Agent' : 'You'} finished with ${game.score.toFixed(2)} points and ${LEVELS[game.trust]} trust. ${game.trust === 2 ? 'Real goal achieved.' : 'Real goal missed.'}`;
+    clearInterval(timer);
+    timer = null;
+    setBusy(false);
+  } else $('message').textContent = `${mode === 'watch' ? 'Agent' : 'You'} showed ${description}.`;
+  renderGame();
+}
+function renderGame() {
+  $('round').textContent = `${game.round} / ${ROUNDS}`;
+  $('score').textContent = game.score.toFixed(2);
+  $('clicks').textContent = game.clicks;
+  $('trust').textContent = $('reveal').checked || game.round === ROUNDS ? `Trust: ${LEVELS[game.trust]} (${game.trust}/2).` : 'Trust: hidden until the game ends.';
+  document.querySelectorAll('[data-action]').forEach(button => button.disabled = busy || game.round === ROUNDS);
+}
+function watch() {
+  if (busy) return;
+  startHuman();
+  mode = 'watch';
+  setBusy(true);
+  $('message').textContent = 'Watching the greedy agent · no exploration, no learning.';
+  timer = setInterval(() => play(chooseAction(state(game), 0, watchRandom)), 450);
+}
+function resetAgent() {
+  const input = $('seed');
+  const parsed = Number(input.value);
+  const seed = Number.isFinite(parsed) ? Math.max(0, Math.min(4294967295, Math.trunc(parsed))) : 158;
+  input.value = seed;
+  trainRandom = seededRandom(seed);
+  humanRandom = seededRandom((seed ^ 0xA341316C) >>> 0);
+  watchRandom = seededRandom((seed ^ 0xC8013EA4) >>> 0);
+  q = Array.from({length: 15}, () => [0, 0, 0, 0]);
+  games = 0; curve = []; batchReward = 0; batchSuccess = 0;
+  startHuman();
+  updateAgent();
+}
+function updateAgent() {
+  const latest = curve[curve.length - 1];
+  $('training-status').textContent = latest ? `${games.toLocaleString()} training games · latest 50: ${latest.average.toFixed(2)} average reward · ${(latest.success * 100).toFixed(0)}% high-trust finishes.` : '0 training games. Train the agent, then watch its greedy policy.';
+  $('q-table').innerHTML = q.map((row, s) => `<tr><td>${[...POSTS.map(p => p.name), 'None'][Math.floor(s / 3)]} / ${LEVELS[s % 3]}</td>${row.map(v => `<td>${v.toFixed(2)}</td>`).join('')}</tr>`).join('');
+  $('curve-data').innerHTML = curve.map(p => `<tr><td>${p.games - 49}–${p.games}</td><td>${p.average.toFixed(2)}</td><td>${(p.success * 100).toFixed(0)}%</td></tr>`).join('');
+  drawChart();
+}
+function drawChart() {
+  const svg = $('chart');
+  const left = 70, right = 885, top = 22, bottom = 235;
+  let min = Math.min(0, ...curve.map(p => p.average));
+  let max = Math.max(1, ...curve.map(p => p.average));
+  const pad = (max - min) * 0.1;
+  min -= pad; max += pad;
+  const last = Math.max(50, games);
+  const x = n => left + (n / last) * (right - left);
+  const yReward = n => bottom - (n - min) / (max - min) * (bottom - top);
+  const yGoal = n => bottom - n * (bottom - top);
+  let markup = '';
+  for (let i = 0; i <= 4; i++) {
+    const y = bottom - i / 4 * (bottom - top);
+    markup += `<line x1="${left}" x2="${right}" y1="${y}" y2="${y}" stroke="#dfe5dc"/><text x="${left - 10}" y="${y + 4}" text-anchor="end">${(min + i / 4 * (max - min)).toFixed(1)}</text><text x="${right + 10}" y="${y + 4}">${i * 25}%</text>`;
+  }
+  for (let i = 0; i <= 4; i++) markup += `<text x="${x(last * i / 4)}" y="258" text-anchor="middle">${Math.round(last * i / 4)}</text>`;
+  markup += '<text x="478" y="283" text-anchor="middle">Training games</text>';
+  for (const [key, color, y] of [['average', '#176455', yReward], ['success', '#b74b2e', yGoal]]) {
+    markup += `<polyline fill="none" stroke="${color}" stroke-width="2.5" points="${curve.map(p => `${x(p.games)},${y(p[key])}`).join(' ')}"/>`;
+    markup += curve.map(p => `<circle cx="${x(p.games)}" cy="${y(p[key])}" r="3" fill="${color}"><title>Games ${p.games - 49}–${p.games}: ${key === 'average' ? p.average.toFixed(2) + ' reward' : (p.success * 100).toFixed(0) + '% high trust'}</title></circle>`).join('');
+  }
+  if (!curve.length) markup += '<text x="478" y="125" text-anchor="middle">Train the agent to draw the first 50-game batch.</text>';
+  svg.innerHTML = `<g font-family="system-ui, sans-serif" font-size="12" fill="#52635d">${markup}</g>`;
+  svg.setAttribute('aria-label', `Learning curve: ${curve.length} batches of 50 games. Reward on the left axis; high-trust finish percentage on the right. Exact values in the learning curve data table.`);
+}
+function updateRewards() {
+  for (const input of document.querySelectorAll('[data-weight]')) {
+    const value = Number(input.value);
+    const safe = Number.isFinite(value) ? Math.max(Number(input.min), Math.min(Number(input.max), value)) : 0;
+    weights[input.dataset.weight] = safe;
+    input.value = safe;
+  }
+  weights.viral = $('reward-mode').value === 'viral' ? 2 : 0;
+  $('reward-explanation').textContent = weights.viral ? 'Campaign rationale: reward high-reach messaging. Prediction: the agent farms Outrage clicks and sacrifices trust. The bonus is paid even after trust reaches low.' : 'Original rule: click points plus any trust incentives you set below.';
+  $('formula').textContent = `Each move: ${weights.click} × click − ${weights.loss} × trust lost + ${weights.gain} × trust recovered. Final move: +${weights.goal} if trust is high.${weights.viral ? ` Viral reach: +${weights.viral} extra per Outrage click.` : ''}`;
+  resetAgent();
+}
+document.querySelectorAll('[data-action]').forEach(button => button.addEventListener('click', () => { if (!busy) play(Number(button.dataset.action)); }));
+document.addEventListener('keydown', event => {
+  if (event.altKey || event.ctrlKey || event.metaKey || event.repeat || /INPUT|TEXTAREA|SELECT/.test(event.target.tagName) || event.target.isContentEditable) return;
+  const action = {ArrowLeft: 0, ArrowUp: 1, ArrowRight: 2, ArrowDown: 3}[event.key];
+  if (action !== undefined && !busy) { event.preventDefault(); play(action); }
+});
+$('new-game').addEventListener('click', startHuman);
+$('reveal').addEventListener('change', renderGame);
+$('train100').addEventListener('click', () => train(100));
+$('train1000').addEventListener('click', () => train(1000));
+$('reset').addEventListener('click', resetAgent);
+$('watch').addEventListener('click', watch);
+$('reward-mode').addEventListener('change', updateRewards);
+document.querySelectorAll('[data-weight]').forEach(input => input.addEventListener('change', updateRewards));
+updateRewards();
+</script>
+</body>
+</html>
